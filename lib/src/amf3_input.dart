@@ -9,7 +9,7 @@ class AMF3Input {
   final List<Object> _objectTable = <Object>[];
   final List<String> _stringTable = <String>[];
   final List<TraitsInfo> _traitsTable = <TraitsInfo>[];
-  int _pos = 0;
+  int _pos = 35;
   
   AMF3Input(this._input);
   
