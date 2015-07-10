@@ -6,6 +6,8 @@
 /// This is an awesome library. More dartdocs go here.
 library amf_codec;
 
+import 'dart:async';
+import 'dart:collection';
 import 'dart:typed_data';
 
 // TODO: Export any libraries intended for clients of this package.

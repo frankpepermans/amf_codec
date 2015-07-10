@@ -27,7 +27,7 @@ class AMF3Input {
       case AMFSerializationType.XML:        return _readXml();
       case AMFSerializationType.XML_STRING: return _readXml();
       case AMFSerializationType.DATE:       return _readDate();
-      case AMFSerializationType.LIST:       return _readList();
+      case AMFSerializationType.LIST:       return _readCollection();
       case AMFSerializationType.OBJECT:     return _readEntity();
       case AMFSerializationType.BYTE_ARRAY: return _readByteArray();
     }
@@ -137,12 +137,12 @@ class AMF3Input {
     return SB.toString();
   }
   
-  Iterable _readList() {
+  dynamic _readCollection() {
     final int ref = _readUInt29();
     String name;
     dynamic value;
     List<dynamic> list;
-    Map<dynamic, dynamic> map;
+    LinkedHashMap<dynamic, dynamic> map;
     int length;
     bool hasMapEntry = false;
           
@@ -158,6 +158,8 @@ class AMF3Input {
         if (name == null || name.length == 0) break;
         
         value = readObject();
+        
+        if (map == null) map = new LinkedHashMap<dynamic, dynamic>();
         
         map[name] = value;
         
