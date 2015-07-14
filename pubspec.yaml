@@ -3,5 +3,8 @@ version: 0.0.1
 description: A starting point for Dart libraries or applications.
 environment:
   sdk: '>=1.0.0 <2.0.0'
+dependencies:
+  dorm:
+    path: ../dorm
 dev_dependencies:
   test: '>=0.12.0 <0.13.0'

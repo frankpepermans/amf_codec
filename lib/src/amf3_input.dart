@@ -6,14 +6,17 @@ class AMF3Input {
   static const String OBJECT_NOT_IEXT_EXCEPTION = "Object is not IExternalizable";
   
   final ByteData _input;
-  final List<Object> _objectTable = <Object>[];
+  final ReadExternalHandler _parseHandler;
+  final EntitySpawnMethod _spawnHandler;
+  final Transformer _transformer;
+  final List<dynamic> _objectTable = <dynamic>[];
   final List<String> _stringTable = <String>[];
   final List<TraitsInfo> _traitsTable = <TraitsInfo>[];
-  int _pos = 35;
+  int _pos = 0;
   
-  AMF3Input(this._input);
+  AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer);
   
-  dynamic readObject() => _readObjectValue(_input.getInt8(_pos++));
+  dynamic readObject() =>_readObjectValue(_input.getInt8(_pos++));
   
   dynamic _readObjectValue(int type) {
     switch (type) {
@@ -63,25 +66,23 @@ class AMF3Input {
   }
   
   double _readDouble() {
-    final double res = _input.getFloat32(_pos);
+    final double res = _input.getFloat64(_pos);
     
-    _pos += 4;
+    _pos += 8;
     
     return res;
   }
   
   String _readString() {
-    int ref = _readUInt29();
-    String str;
-    int length;
+    final int ref = _readUInt29();
           
     if ((ref & 0x01) == 0) return _getStringReference(ref >> 1);
     else {
-      length = (ref >> 1);
+      final int length = (ref >> 1);
       
       if (0 == length) return '';
       
-      str = _readUTF(length);
+      final String str = _readUTF(length);
       
       _addStringReference(str);
       
@@ -90,8 +91,8 @@ class AMF3Input {
   }
   
   String _readUTF(int length) {
-    StringBuffer SB = new StringBuffer();
-    int ch1, ch2, ch3, count = 0, ch = 0;
+    final List<int> SB = <int>[];
+    int ch1, ch2, ch3, count = 0;
     
     while (count < length) {
       ch1 = _input.getInt8(_pos++) & 0xFF;
@@ -100,7 +101,7 @@ class AMF3Input {
         case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
           count++;
           
-          SB.writeCharCode(ch1);
+          SB.add(ch1);
           
           break;
         case 12:  case 13:
@@ -112,7 +113,7 @@ class AMF3Input {
           
           if ((ch2 & 0xC0) != 0x80) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
-          SB.writeCharCode(((ch1 & 0x1F) << 6) | (ch2 & 0x3F));
+          SB.add(((ch1 & 0x1F) << 6) | (ch2 & 0x3F));
           
           break;
         case 14:
@@ -125,37 +126,34 @@ class AMF3Input {
           
           if (((ch2 & 0xC0) != 0x80) || ((ch3 & 0xC0) != 0x80)) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
-          SB.writeCharCode(((ch1 & 0x0F) << 12) | ((ch2 & 0x3F) << 6) | ((ch3 & 0x3F) << 0));
+          SB.add(((ch1 & 0x0F) << 12) | ((ch2 & 0x3F) << 6) | ((ch3 & 0x3F) << 0));
           
           break;
         default:  throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
       }
-      
-      ch++;
     }
     
-    return SB.toString();
+    return new String.fromCharCodes(SB);
   }
   
   dynamic _readCollection() {
     final int ref = _readUInt29();
     String name;
     dynamic value;
-    List<dynamic> list;
     LinkedHashMap<dynamic, dynamic> map;
-    int length;
     bool hasMapEntry = false;
           
     if ((ref & 0x01) == 0) return _getObjectReference(ref >> 1);
     else {
-      length = (ref >> 1);
-      list = <dynamic>[];
+      final int length = (ref >> 1);
+      final List<dynamic> list = <dynamic>[];
+      
       _addObjectReference(list);
       
       while (true) {
         name = _readString();
         
-        if (name == null || name.length == 0) break;
+        if (name == null || name.isEmpty) break;
         
         value = readObject();
         
@@ -173,14 +171,13 @@ class AMF3Input {
   }
   
   DateTime _readDate() {
-    int ref = _readUInt29();
-    DateTime date;
+    final int ref = _readUInt29();
     
     if ((ref & 0x01) == 0) return _getObjectReference(ref >> 1);
     else {
-      date = new DateTime.fromMillisecondsSinceEpoch(_input.getFloat32(_pos).toInt());
+      final DateTime date = new DateTime.fromMillisecondsSinceEpoch(_input.getFloat64(_pos).toInt());
       
-      _pos += 4;
+      _pos += 8;
       
       _addObjectReference(date);
       
@@ -190,11 +187,11 @@ class AMF3Input {
   
   List<int> _readByteArray() {
     final int ref = _readUInt29();
-    int length, baPos = 0;
+    int baPos = 0;
     
     if ((ref & 0x01) == 0) return _getObjectReference(ref >> 1);
     else {
-      length = (ref >> 1);
+      final int length = (ref >> 1);
       
       final List<int> BA = new List<int>(length);
       
@@ -214,13 +211,11 @@ class AMF3Input {
   
   String _readXml() {
     final int ref = _readUInt29();
-    int length;
     String xml;
     
     if ((ref & 0x01) == 0) xml = _getObjectReference(ref >> 1);
     else {
-      length = (ref >> 1);
-      
+      final int length = (ref >> 1);
       xml = _readUTF(length);
       
       _addObjectReference(xml);
@@ -229,61 +224,54 @@ class AMF3Input {
     return xml;
   }
   
-  Map<String, dynamic> _readEntity() {
+  dynamic _readEntity() {
     final int ref = _readUInt29();
-    Map<String, dynamic> entity;
-    TraitsInfo traitsInfo;
     String property;
-    String type;
           
     if ((ref & 0x01) == 0) return _getObjectReference(ref >> 1);
     else {
-      traitsInfo = _readTraits(ref);
-      
-      type = traitsInfo.type;
-      
-      entity = <String, dynamic>{};
+      final TraitsInfo traitsInfo = _readTraits(ref);
+      dynamic entity = traitsInfo.isExternalizable ? _spawnHandler(traitsInfo.type) : <String, dynamic>{};
       
       _addObjectReference(entity);
       
-      traitsInfo.properties.forEach((PropertyInfo I) => entity[I.name] = readObject());
-      
-      while (true) {
-        property = _readString();
-        
-        if (property == null || property == '') break;
-        
-        entity[property] = readObject();
+      if (traitsInfo.isExternalizable) entity = _readExternalizable(entity);
+      else {
+        traitsInfo.properties.forEach((PropertyInfo I) => entity[I.name] = readObject());
+              
+        if (traitsInfo.isDynamic) {
+          while (true) {
+            property = _readString();
+            
+            if (property == null || property.isEmpty) break;
+            
+            entity[property] = readObject();
+          }
+        }
       }
       
-      return entity;
+      return (_transformer != null) ? _transformer(entity) : entity;
     }
     
     return null;
   }
   
+  dynamic _readExternalizable(dynamic entity) => _parseHandler(entity, this);
+  
   TraitsInfo _readTraits(int ref) {
     TraitsInfo traitsInfo;
     int propertyCount;
-    String type;
     int index;
-    String property;
           
     if ((ref & 0x03) == 1) return _getTraitsReference(ref >> 2);
     else {
-      type = _readString();
-      
-      traitsInfo = new TraitsInfo(type);
+      traitsInfo = new TraitsInfo(_readString(), isDynamic: ((ref & 0x08) == 8), isExternalizable: ((ref & 0x04) == 4));
       
       _addTraitsReference(traitsInfo);
 
       propertyCount = (ref >> 4); /* uint29 */
       
-      for (index = 0; index < propertyCount; ++index) {
-              property = _readString();
-              
-              traitsInfo.addProperty(property);
-      }
+      for (index = 0; index < propertyCount; ++index) traitsInfo.addProperty(_readString());
       
       return traitsInfo;
     }
@@ -293,7 +281,7 @@ class AMF3Input {
   
   void _addObjectReference(dynamic value) => _objectTable.add(value);
   
-  dynamic _getStringReference(int index) => _stringTable[index];
+  String _getStringReference(int index) => _stringTable[index];
   
   void _addStringReference(String value) => _stringTable.add(value);
   
