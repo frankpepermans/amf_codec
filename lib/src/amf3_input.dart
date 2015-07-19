@@ -13,26 +13,29 @@ class AMF3Input {
   final List<String> _stringTable = <String>[];
   final List<TraitsInfo> _traitsTable = <TraitsInfo>[];
   int _pos = 0;
+  bool isAMF0;
   
-  AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer);
+  AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer, [bool isAMF0=false]) {
+    this.isAMF0 = isAMF0;
+  }
   
   dynamic readObject() =>_readObjectValue(_input.getInt8(_pos++));
   
   dynamic _readObjectValue(int type) {
     switch (type) {
-      case AMFSerializationType.UNDEFINED:  return null;
-      case AMFSerializationType.NULL:       return null;
-      case AMFSerializationType.FALSE:      return false;
-      case AMFSerializationType.TRUE:       return true;
-      case AMFSerializationType.INTEGER:    return _readUInt29();
-      case AMFSerializationType.NUMBER:     return _readDouble();
-      case AMFSerializationType.STRING:     return _readString();
-      case AMFSerializationType.XML:        return _readXml();
-      case AMFSerializationType.XML_STRING: return _readXml();
-      case AMFSerializationType.DATE:       return _readDate();
-      case AMFSerializationType.LIST:       return _readCollection();
-      case AMFSerializationType.OBJECT:     return _readEntity();
-      case AMFSerializationType.BYTE_ARRAY: return _readByteArray();
+      case AMF3SerializationType.UNDEFINED:  return null;
+      case AMF3SerializationType.NULL:       return null;
+      case AMF3SerializationType.FALSE:      return false;
+      case AMF3SerializationType.TRUE:       return true;
+      case AMF3SerializationType.INTEGER:    return _readUInt29();
+      case AMF3SerializationType.NUMBER:     return _readDouble();
+      case AMF3SerializationType.STRING:     return _readString();
+      case AMF3SerializationType.XML:        return _readXml();
+      case AMF3SerializationType.XML_STRING: return _readXml();
+      case AMF3SerializationType.DATE:       return _readDate();
+      case AMF3SerializationType.LIST:       return _readCollection();
+      case AMF3SerializationType.OBJECT:     return _readEntity();
+      case AMF3SerializationType.BYTE_ARRAY: return _readByteArray();
     }
     
     throw new ArgumentError('Unknown type: $type');
@@ -139,7 +142,6 @@ class AMF3Input {
   dynamic _readCollection() {
     final int ref = _readUInt29();
     String name;
-    dynamic value;
     LinkedHashMap<dynamic, dynamic> map;
     bool hasMapEntry = false;
           
@@ -155,11 +157,9 @@ class AMF3Input {
         
         if (name == null || name.isEmpty) break;
         
-        value = readObject();
-        
         if (map == null) map = new LinkedHashMap<dynamic, dynamic>();
         
-        map[name] = value;
+        map.putIfAbsent(name, () => readObject());
         
         hasMapEntry = true;
       }
@@ -185,7 +185,7 @@ class AMF3Input {
     }
   }
   
-  List<int> _readByteArray() {
+  ByteData _readByteArray() {
     final int ref = _readUInt29();
     int baPos = 0;
     
@@ -193,7 +193,7 @@ class AMF3Input {
     else {
       final int length = (ref >> 1);
       
-      final List<int> BA = new List<int>(length);
+      final Int8List BA = new Int8List(length);
       
       while (baPos < length) {
         BA.add(_input.getInt8(_pos++));
@@ -203,7 +203,7 @@ class AMF3Input {
       
       _addObjectReference(BA);
       
-      return BA;
+      return new ByteData.view(BA.buffer);
     }
     
     return null;
@@ -235,9 +235,15 @@ class AMF3Input {
       
       _addObjectReference(entity);
       
-      if (traitsInfo.isExternalizable) entity = _readExternalizable(entity);
+      if (traitsInfo.isExternalizable)
+        entity = _readExternalizable(entity);
       else {
-        traitsInfo.properties.forEach((PropertyInfo I) => entity[I.name] = readObject());
+        traitsInfo.properties.forEach(
+            (PropertyInfo I) {
+          dynamic V = readObject();
+          entity[I.name] = V;
+        }
+        );
               
         if (traitsInfo.isDynamic) {
           while (true) {
@@ -245,7 +251,9 @@ class AMF3Input {
             
             if (property == null || property.isEmpty) break;
             
-            entity[property] = readObject();
+            try {
+              entity[property] = readObject();
+            } catch (error) {}
           }
         }
       }
