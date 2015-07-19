@@ -13,11 +13,8 @@ class AMF3Input {
   final List<String> _stringTable = <String>[];
   final List<TraitsInfo> _traitsTable = <TraitsInfo>[];
   int _pos = 0;
-  bool isAMF0;
   
-  AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer, [bool isAMF0=false]) {
-    this.isAMF0 = isAMF0;
-  }
+  AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer);
   
   dynamic readObject() =>_readObjectValue(_input.getInt8(_pos++));
   
@@ -159,7 +156,7 @@ class AMF3Input {
         
         if (map == null) map = new LinkedHashMap<dynamic, dynamic>();
         
-        map.putIfAbsent(name, () => readObject());
+        map[name] = readObject();
         
         hasMapEntry = true;
       }
@@ -238,12 +235,10 @@ class AMF3Input {
       if (traitsInfo.isExternalizable)
         entity = _readExternalizable(entity);
       else {
-        traitsInfo.properties.forEach(
-            (PropertyInfo I) {
+        traitsInfo.properties.forEach((PropertyInfo I) {
           dynamic V = readObject();
           entity[I.name] = V;
-        }
-        );
+        });
               
         if (traitsInfo.isDynamic) {
           while (true) {

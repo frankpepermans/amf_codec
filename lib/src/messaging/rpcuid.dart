@@ -39,8 +39,8 @@ class RPCUID {
 
     bytes.add(DASH);
 
-    int time = new DateTime.now().millisecondsSinceEpoch;
-    String timeString = time.toStringAsPrecision(16).toUpperCase();
+    DateTime now = new DateTime.now();
+    String timeString = '${now.hour}${now.second}${now.millisecond}'.toUpperCase();
     
     for (i = 8; i > timeString.length; i--) bytes.add(48);
     

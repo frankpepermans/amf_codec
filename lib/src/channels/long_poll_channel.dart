@@ -16,6 +16,9 @@ class LongPollChannel extends AMFChannel {
   
   String clientId;
   String dstClientId;
+  int reconnectInterval;
+  int reconnectMaxAttempts;
+  bool encodeMessageBody;
   Stream stream;
   
   LongPollChannel(this.url, this.endPoint, this.destination, this.selector, [EntitySpawnMethod spawnHandler=null, ReadExternalHandler parseHandler=null, Transformer transformer=null]) {
@@ -31,6 +34,9 @@ class LongPollChannel extends AMFChannel {
     final Map<String, dynamic> pingResponse = await _ping();
     
     clientId = pingResponse['clientId'];
+    reconnectInterval = (pingResponse['body']['reconnect-interval-ms'] as double).toInt();
+    reconnectMaxAttempts = (pingResponse['body']['reconnect-max-attempts'] as double).toInt();
+    encodeMessageBody = pingResponse['body']['encode-message-body'];
     
     final Map<String, dynamic> subscribeResponse = await _subscribe();
     
@@ -39,6 +45,10 @@ class LongPollChannel extends AMFChannel {
     _poll();
     
     return true;
+  }
+  
+  void beginPolling() {
+    _poll();
   }
   
   Future<Map> _ping() async {
@@ -60,8 +70,9 @@ class LongPollChannel extends AMFChannel {
       requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
     );
     
-    if (request.response is ByteBuffer)
+    if (request.response is ByteBuffer) {
       response = new AMF3Input(new ByteData.view(request.response), null, null, null).readObject();
+    }
     
     return (response != null) ? response.first as Map : null;
   }
@@ -124,16 +135,16 @@ class LongPollChannel extends AMFChannel {
     Map<String, dynamic> body;
     Map<String, dynamic> viewItems;
     
-    if (response != null) {
-      body = response.first['body'];
-      viewItems = body['viewItems'];
+    if (response is Iterable) {
+      response.forEach((Map<String, dynamic> entry) {
+        body = entry['body'];
+        viewItems = body['viewItems'];
+        
+        if (viewItems != null) viewItems.forEach((dynamic K, dynamic V) => _dataStreamController.add(V));
+      });
       
-      if (viewItems != null) {
-        viewItems.values.forEach((dynamic V) => _dataStreamController.add(V));
-      }
-    }
-    
-    _poll();
+      _poll();
+    } else new Timer(const Duration(seconds: 3), _poll);
           
     return true;
   }

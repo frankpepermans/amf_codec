@@ -19,11 +19,8 @@ class AMF3Output {
   final HashMap<String, int> _traitsTable = new HashMap.identity();
   final HashMap<String, int> _stringTable = new HashMap.identity();
   int _pos = 0;
-  bool isAMF0;
   
-  AMF3Output(this._target, this._writeHandler, [bool isAMF0=false]) {
-    this.isAMF0 = isAMF0;
-  }
+  AMF3Output(this._target, this._writeHandler);
     
   ByteData writeObject() {
     writeObjectValue(_target);
