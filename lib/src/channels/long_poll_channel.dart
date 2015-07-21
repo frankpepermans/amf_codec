@@ -85,7 +85,7 @@ class LongPollChannel extends AMFChannel {
     CM.clientId = clientId;
     CM.messageId = RPCUID.create();
     CM.timestamp = new DateTime.now().millisecondsSinceEpoch;
-    CM.destination = 'com.capxd.view.instrument.data.bond.event';
+    CM.destination = destination;
     CM.timeToLive = 0;
     CM.headers = {AbstractMessage.ENDPOINT_HEADER: endPoint, CommandMessage.SELECTOR_HEADER: selector};
     
@@ -134,13 +134,16 @@ class LongPollChannel extends AMFChannel {
     
     Map<String, dynamic> body;
     Map<String, dynamic> viewItems;
+    dynamic viewEntity;
     
     if (response is Iterable) {
       response.forEach((Map<String, dynamic> entry) {
         body = entry['body'];
         viewItems = body['viewItems'];
+        viewEntity = body['viewEntity'];
         
         if (viewItems != null) viewItems.forEach((dynamic K, dynamic V) => _dataStreamController.add(V));
+        if (viewEntity != null) _dataStreamController.add(viewEntity);
       });
       
       _poll();

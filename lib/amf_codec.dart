@@ -43,3 +43,29 @@ void messageOutputWriter(AsyncMessage M, AMF3Output output) {
   if (M is CommandMessage) _CommandMessageHelper.writeToOutput(M, output);
   else if (M is RemotingMessage) _RemotingMessageHelper.writeToOutput(M, output);
 }
+
+const List<int> AMF0_PREFIX = const <int>[0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x04, 0x6E, 0x75, 0x6C, 0x6C, 0x00, 0x03, 0x2F, 0x31, 0x32, 0x00, 0x00, 0x01, 0xA5, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x11, 0x0A, 0x81, 0x13];
+
+
+Future<Map> sendAMF0Message(AsyncMessage message, String url) async {
+  final List<int> AMFList = new List<int>.from(AMF0_PREFIX);
+  dynamic response;
+  
+  final Uint8List L = new AMF3Output(message, messageOutputWriter).writeObject().buffer.asUint8List();
+          
+  for (int i=3, len=L.length; i<len; i++) AMFList.add(L[i]);
+  
+  final HttpRequest request = await HttpRequest.request(
+    url,
+    method: 'POST', 
+    mimeType: 'application/x-amf',
+    sendData: new ByteData.view(new Int8List.fromList(AMFList).buffer),
+    responseType: 'arraybuffer',
+    requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
+  );
+  
+  if (request.response is ByteBuffer)
+    response = new AMF3Input(new ByteData.view(request.response), null, null, null).readObject();
+  
+  return (response != null) ? response.first as Map : null;
+}
