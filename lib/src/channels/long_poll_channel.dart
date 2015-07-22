@@ -132,24 +132,31 @@ class LongPollChannel extends AMFChannel {
       }
     }
     
-    Map<String, dynamic> body;
-    Map<String, dynamic> viewItems;
-    dynamic viewEntity;
-    
     if (response is Iterable) {
-      response.forEach((Map<String, dynamic> entry) {
-        body = entry['body'];
-        viewItems = body['viewItems'];
-        viewEntity = body['viewEntity'];
-        
-        if (viewItems != null) viewItems.forEach((dynamic K, dynamic V) => _dataStreamController.add(V));
-        if (viewEntity != null) _dataStreamController.add(viewEntity);
-      });
+      response.forEach(_decodeBody);
+      
+      _poll();
+    } else if (response is Map) {
+      _decodeBody(response);
       
       _poll();
     } else new Timer(const Duration(seconds: 3), _poll);
           
     return true;
+  }
+  
+  void _decodeBody(Map<String, dynamic> entry) {
+    if (entry != null) {
+      final Map<String, dynamic> body = entry['body'];
+      
+      if (body != null) {
+        final Map<String, dynamic> viewItems = body['viewItems'];
+        final dynamic viewEntity = body['viewEntity'];
+        
+        if (viewItems != null) viewItems.forEach((_, dynamic V) => _dataStreamController.add(V));
+        if (viewEntity != null) _dataStreamController.add(viewEntity);
+      }
+    }
   }
   
 }
