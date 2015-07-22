@@ -65,7 +65,7 @@ class LongPollChannel extends AMFChannel {
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}',
       method: 'POST', 
       mimeType: 'application/x-amf',
-      sendData: new AMF3Output([CM], messageOutputWriter).writeObject().buffer.asUint8List(),
+      sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
       requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
     );
@@ -93,7 +93,7 @@ class LongPollChannel extends AMFChannel {
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}', 
       method: 'POST', 
       mimeType: 'application/x-amf',
-      sendData: new AMF3Output([CM], messageOutputWriter).writeObject().buffer.asUint8List(),
+      sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
       requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
     );
@@ -119,7 +119,7 @@ class LongPollChannel extends AMFChannel {
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}', 
       method: 'POST', 
       mimeType: 'application/x-amf',
-      sendData: new AMF3Output([CM], messageOutputWriter).writeObject().buffer.asUint8List(),
+      sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
       requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
     );

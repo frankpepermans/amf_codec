@@ -59,7 +59,7 @@ Future<Map> sendAMF0Message(AsyncMessage message, String url) async {
     url,
     method: 'POST', 
     mimeType: 'application/x-amf',
-    sendData: new ByteData.view(new Int8List.fromList(AMFList).buffer),
+    sendData: new Int8List.fromList(AMFList),
     responseType: 'arraybuffer',
     requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
   );
