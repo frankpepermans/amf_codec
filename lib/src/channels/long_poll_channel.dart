@@ -64,6 +64,7 @@ class LongPollChannel extends AMFChannel {
     final HttpRequest request = await HttpRequest.request(
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}',
       method: 'POST', 
+      withCredentials: true,
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
@@ -92,6 +93,7 @@ class LongPollChannel extends AMFChannel {
     final HttpRequest request = await HttpRequest.request(
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}', 
       method: 'POST', 
+      withCredentials: true,
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
@@ -118,6 +120,7 @@ class LongPollChannel extends AMFChannel {
     final HttpRequest request = await HttpRequest.request(
       '${url}?m=${new DateTime.now().millisecondsSinceEpoch}', 
       method: 'POST', 
+      withCredentials: true,
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',

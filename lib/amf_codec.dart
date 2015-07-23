@@ -58,6 +58,7 @@ Future<Map> sendAMF0Message(AsyncMessage message, String url) async {
   final HttpRequest request = await HttpRequest.request(
     url,
     method: 'POST', 
+    withCredentials: true,
     mimeType: 'application/x-amf',
     sendData: new Int8List.fromList(AMFList),
     responseType: 'arraybuffer',
