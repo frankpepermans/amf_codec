@@ -3,6 +3,7 @@ part of amf_codec;
 class LongPollChannel extends AMFChannel {
   
   static const List<String> _LONG_POLLING = const <String>['long-polling'];
+  static const Map<String, String> _HEADERS = const <String, String>{'Content-Type': 'application/x-amf'};
   
   final String endPoint;
   final String url;
@@ -67,7 +68,7 @@ class LongPollChannel extends AMFChannel {
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
-      requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
+      requestHeaders: _HEADERS
     );
     
     if (request.response is ByteBuffer) {
@@ -96,7 +97,7 @@ class LongPollChannel extends AMFChannel {
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
-      requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
+      requestHeaders: _HEADERS
     );
     
     if (request.response is ByteBuffer)
@@ -123,7 +124,7 @@ class LongPollChannel extends AMFChannel {
       mimeType: 'application/x-amf',
       sendData: new AMF3Output([CM], messageOutputWriter).writeObject(),
       responseType: 'arraybuffer',
-      requestHeaders: <String, String>{'Content-Type': 'application/x-amf'}
+      requestHeaders: _HEADERS
     );
     
     if (request.response is ByteBuffer) {
