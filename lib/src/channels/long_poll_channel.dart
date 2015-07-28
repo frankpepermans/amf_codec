@@ -38,17 +38,16 @@ class LongPollChannel extends AMFChannel {
     reconnectMaxAttempts = (pingResponse['body']['reconnect-max-attempts'] as double).toInt();
     encodeMessageBody = pingResponse['body']['encode-message-body'];
     
-    final Map<String, dynamic> subscribeResponse = await _subscribe();
-    
-    dstClientId = subscribeResponse['headers']['DSDstClientId'];
-    
-    _poll();
-    
     return true;
   }
   
-  void beginPolling() {
-    _poll();
+  Future<bool> beginPolling() async {
+    final Map<String, dynamic> subscribeResponse = await _subscribe();
+    
+    clientId = subscribeResponse['clientId'];
+    dstClientId = subscribeResponse['headers']['DSDstClientId'];
+    
+    return await _poll();
   }
   
   Future<Map> _ping() async {
@@ -132,6 +131,8 @@ class LongPollChannel extends AMFChannel {
         response = new AMF3Input(new ByteData.view(request.response), _spawnHandler, _parseHandler, _transformer).readObject();
       } catch (error) {
         response = null;
+        
+        print(error);
       }
     }
     
@@ -148,18 +149,23 @@ class LongPollChannel extends AMFChannel {
     return true;
   }
   
-  void _decodeBody(Map<String, dynamic> entry) {
+  bool _decodeBody(Map<String, dynamic> entry) {
     if (entry != null) {
       final Map<String, dynamic> body = entry['body'];
       
       if (body != null) {
+        final bool endOfSequence = body['endOfSequence'];
         final Map<String, dynamic> viewItems = body['viewItems'];
         final dynamic viewEntity = body['viewEntity'];
         
         if (viewItems != null) viewItems.forEach((_, dynamic V) => _dataStreamController.add(V));
         if (viewEntity != null) _dataStreamController.add(viewEntity);
+        
+        return endOfSequence;
       }
     }
+    
+    return false;
   }
   
 }

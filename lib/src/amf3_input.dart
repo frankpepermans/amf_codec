@@ -16,7 +16,7 @@ class AMF3Input {
   
   AMF3Input(this._input, this._spawnHandler, this._parseHandler, this._transformer);
   
-  dynamic readObject() =>_readObjectValue(_input.getInt8(_pos++));
+  dynamic readObject() =>_readObjectValue(_input.getUint8(_pos++));
   
   dynamic _readObjectValue(int type) {
     switch (type) {
@@ -95,7 +95,7 @@ class AMF3Input {
     int ch1, ch2, ch3, count = 0;
     
     while (count < length) {
-      ch1 = _input.getInt8(_pos++) & 0xFF;
+      ch1 = _input.getUint8(_pos++) & 0xFF;
       
       switch (ch1 >> 4) {
         case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
@@ -109,7 +109,7 @@ class AMF3Input {
           
           if (count > length) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
-          ch2 = _input.getInt8(_pos++);
+          ch2 = _input.getUint8(_pos++);
           
           if ((ch2 & 0xC0) != 0x80) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
@@ -121,12 +121,12 @@ class AMF3Input {
           
           if (count > length) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
-          ch2 = _input.getInt8(_pos++);
-          ch3 = _input.getInt8(_pos++);
+          ch2 = _input.getUint8(_pos++);
+          ch3 = _input.getUint8(_pos++);
           
           if (((ch2 & 0xC0) != 0x80) || ((ch3 & 0xC0) != 0x80)) throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
           
-          SB.add(((ch1 & 0x0F) << 12) | ((ch2 & 0x3F) << 6) | ((ch3 & 0x3F) << 0));
+          SB.add(((ch1 & 0x0F) << 12) | ((ch2 & 0x3F) << 6) | ((ch3 & 0x3F)));
           
           break;
         default:  throw new ArgumentError(UTF_DATA_FORMAT_EXCEPTION);
@@ -193,7 +193,7 @@ class AMF3Input {
       final Int8List BA = new Int8List(length);
       
       while (baPos < length) {
-        BA.add(_input.getInt8(_pos++));
+        BA.add(_input.getUint8(_pos++));
         
         baPos++;
       }
